@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login & CRUD App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      width: 350px;
+      box-shadow: 0px 8px 20px rgba(0,0,0,0.2);
+      animation: fadeIn 1s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(-20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: #6e8efb;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #5a73d8;
+    }
+    .hidden {
+      display: none;
+    }
+    table {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #6e8efb;
+      color: white;
+    }
+    .action-btn {
+      padding: 5px 10px;
+      margin: 2px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+    .edit { background: #ffa500; }
+    .delete { background: #ff4d4d; }
+    .logout { background: #333; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="loginBox">
+    <h2>Login</h2>
+    <input type="text" id="loginUser" placeholder="Enter Username">
+    <input type="password" id="loginPass" placeholder="Enter Password">
+    <button onclick="login()">Login</button>
+    <p style="text-align:center; font-size:14px;">No account? <a href="#" onclick="showRegister()">Register</a></p>
+  </div>
+
+  <div class="container hidden" id="registerBox">
+    <h2>Register</h2>
+    <input type="text" id="regUser" placeholder="Choose Username">
+    <input type="password" id="regPass" placeholder="Choose Password">
+    <button onclick="register()">Register</button>
+    <p style="text-align:center; font-size:14px;"><a href="#" onclick="showLogin()">Back to Login</a></p>
+  </div>
+
+  <div class="container hidden" id="crudBox">
+    <h2>User Dashboard</h2>
+    <input type="text" id="newUser" placeholder="Username">
+    <input type="password" id="newPass" placeholder="Password">
+    <button onclick="createUser()">Add User</button>
+
+    <table id="userTable">
+      <tr>
+        <th>Username</th>
+        <th>Password</th>
+        <th>Actions</th>
+      </tr>
+    </table>
+
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    function getUsers() {
+      return JSON.parse(localStorage.getItem("users")) || [];
+    }
+    function saveUsers(users) {
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+
+    function register() {
+      let user = document.getElementById("regUser").value;
+      let pass = document.getElementById("regPass").value;
+      if(user === "" || pass === "") { alert("All fields required!"); return; }
+      let users = getUsers();
+      if(users.some(u => u.username === user)) {
+        alert("User already exists!"); return;
+      }
+      users.push({username: user, password: pass});
+      saveUsers(users);
+      alert("Registration successful!");
+      showLogin();
+    }
+
+    function login() {
+      let user = document.getElementById("loginUser").value;
+      let pass = document.getElementById("loginPass").value;
+      let users = getUsers();
+      let valid = users.find(u => u.username === user && u.password === pass);
+      if(valid) {
+        sessionStorage.setItem("loggedIn", user);
+        showCRUD();
+      } else {
+        alert("Invalid password or username");
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem("loggedIn");
+      showLogin();
+    }
+
+    function createUser() {
+      let user = document.getElementById("newUser").value;
+      let pass = document.getElementById("newPass").value;
+      if(user === "" || pass === "") { alert("All fields required!"); return; }
+      let users = getUsers();
+      users.push({username: user, password: pass});
+      saveUsers(users);
+      loadTable();
+      document.getElementById("newUser").value = "";
+      document.getElementById("newPass").value = "";
+    }
+
+    function deleteUser(index) {
+      let users = getUsers();
+      users.splice(index, 1);
+      saveUsers(users);
+      loadTable();
+    }
+
+    function editUser(index) {
+      let users = getUsers();
+      let newUser = prompt("Edit Username:", users[index].username);
+      let newPass = prompt("Edit Password:", users[index].password);
+      if(newUser && newPass) {
+        users[index] = {username: newUser, password: newPass};
+        saveUsers(users);
+        loadTable();
+      }
+    }
+
+    function loadTable() {
+      let users = getUsers();
+      let table = document.getElementById("userTable");
+      table.innerHTML = `
+        <tr>
+          <th>Username</th>
+          <th>Password</th>
+          <th>Actions</th>
+        </tr>
+      `;
+      users.forEach((u, i) => {
+        table.innerHTML += `
+          <tr>
+            <td>${u.username}</td>
+            <td>${u.password}</td>
+            <td>
+              <button class="action-btn edit" onclick="editUser(${i})">Edit</button>
+              <button class="action-btn delete" onclick="deleteUser(${i})">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function showRegister() {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("registerBox").classList.remove("hidden");
+    }
+    function showLogin() {
+      document.getElementById("registerBox").classList.add("hidden");
+      document.getElementById("crudBox").classList.add("hidden");
+      document.getElementById("loginBox").classList.remove("hidden");
+    }
+    function showCRUD() {
+      document.getElementById("loginBox").classList.add("hidden");
+      document.getElementById("registerBox").classList.add("hidden");
+      document.getElementById("crudBox").classList.remove("hidden");
+      loadTable();
+    }
+
+    // Auto-login if already logged in
+    if(sessionStorage.getItem("loggedIn")) {
+      showCRUD();
+    }
+  </script>
+
+</body>
+</html>
